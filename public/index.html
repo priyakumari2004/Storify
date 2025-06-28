@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed File Storage System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 {
+            color: #1f2937;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            inset: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            color: #6b7280;
+        }
+
+        .upload-text {
+            color: #4b5563;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #10b981;
+        }
+
+        .btn-secondary:hover {
+            background: #059669;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .status {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .files-list {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .files-list h2 {
+            color: #1f2937;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-meta {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 6px;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f4f6;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Distributed File Storage</h1>
+            <p>Upload, chunk, and retrieve files across distributed storage nodes</p>
+        </div>
+
+        <div class="grid">
+            <!-- Upload Section -->
+            <div class="card">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Upload File
+                </h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept="*">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17,8 12,3 7,8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <div class="upload-text">Choose a file or drag and drop</div>
+                    <div class="upload-subtext">Maximum file size: 100MB</div>
+                </div>
+
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="status" id="uploadStatus"></div>
+
+                <button class="btn" id="uploadBtn" disabled>
+                    <span id="uploadBtnText">Select a file first</span>
+                    <div class="loading" id="uploadLoading" style="display: none;"></div>
+                </button>
+            </div>
+
+            <!-- Download Section -->
+            <div class="card">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download File
+                </h2>
+
+                <div class="input-group">
+                    <label for="downloadSelect">Select file to download:</label>
+                    <select id="downloadSelect">
+                        <option value="">Loading files...</option>
+                    </select>
+                </div>
+
+                <div class="status" id="downloadStatus"></div>
+
+                <button class="btn btn-secondary" id="downloadBtn" disabled>
+                    <span id="downloadBtnText">Select a file first</span>
+                    <div class="loading" id="downloadLoading" style="display: none;"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Files List -->
+        <div class="files-list">
+            <h2>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                    <polyline points="13,2 13,9 20,9"/>
+                </svg>
+                Stored Files
+            </h2>
+            <div id="filesList">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                        <polyline points="13,2 13,9 20,9"/>
+                    </svg>
+                    <p>No files uploaded yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FileStorageApp {
+            constructor() {
+                this.selectedFile = null;
+                this.initializeElements();
+                this.bindEvents();
+                this.loadFiles();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.uploadBtn = document.getElementById('uploadBtn');
+                this.uploadBtnText = document.getElementById('uploadBtnText');
+                this.uploadLoading = document.getElementById('uploadLoading');
+                this.uploadStatus = document.getElementById('uploadStatus');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressFill = document.getElementById('progressFill');
+                
+                this.downloadSelect = document.getElementById('downloadSelect');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.downloadBtnText = document.getElementById('downloadBtnText');
+                this.downloadLoading = document.getElementById('downloadLoading');
+                this.downloadStatus = document.getElementById('downloadStatus');
+                
+                this.filesList = document.getElementById('filesList');
+            }
+
+            bindEvents() {
+                // Upload events
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+                this.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+                this.uploadBtn.addEventListener('click', () => this.uploadFile());
+
+                // Download events
+                this.downloadSelect.addEventListener('change', () => this.handleDownloadSelect());
+                this.downloadBtn.addEventListener('click', () => this.downloadFile());
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.selectedFile = file;
+                    this.uploadBtnText.textContent = `Upload ${file.name}`;
+                    this.uploadBtn.disabled = false;
+                    this.hideStatus('upload');
+                }
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                this.uploadArea.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    this.selectedFile = file;
+                    this.fileInput.files = e.dataTransfer.files;
+                    this.uploadBtnText.textContent = `Upload ${file.name}`;
+                    this.uploadBtn.disabled = false;
+                    this.hideStatus('upload');
+                }
+            }
+
+            handleDownloadSelect() {
+                const filename = this.downloadSelect.value;
+                if (filename) {
+                    this.downloadBtnText.textContent = `Download ${filename}`;
+                    this.downloadBtn.disabled = false;
+                } else {
+                    this.downloadBtnText.textContent = 'Select a file first';
+                    this.downloadBtn.disabled = true;
+                }
+                this.hideStatus('download');
+            }
+
+            async uploadFile() {
+                if (!this.selectedFile) return;
+
+                const formData = new FormData();
+                formData.append('file', this.selectedFile);
+
+                this.setLoading('upload', true);
+                this.showProgress();
+
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        this.showStatus('upload', 'success', 
+                            `✅ ${result.filename} uploaded successfully! Split into ${result.chunks} chunks across ${result.nodes.length} nodes.`);
+                        this.resetUpload();
+                        this.loadFiles();
+                    } else {
+                        this.showStatus('upload', 'error', `❌ Upload failed: ${result.error}`);
+                    }
+                } catch (error) {
+                    this.showStatus('upload', 'error', `❌ Upload failed: ${error.message}`);
+                } finally {
+                    this.setLoading('upload', false);
+                    this.hideProgress();
+                }
+            }
+
+            async downloadFile() {
+                const filename = this.downloadSelect.value;
+                if (!filename) return;
+
+                this.setLoading('download', true);
+
+                try {
+                    const response = await fetch(`/api/download/${encodeURIComponent(filename)}`);
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+
+                        this.showStatus('download', 'success', `✅ ${filename} downloaded successfully!`);
+                    } else {
+                        const result = await response.json();
+                        this.showStatus('download', 'error', `❌ Download failed: ${result.error}`);
+                    }
+                } catch (error) {
+                    this.showStatus('download', 'error', `❌ Download failed: ${error.message}`);
+                } finally {
+                    this.setLoading('download', false);
+                }
+            }
+
+            async loadFiles() {
+                try {
+                    const response = await fetch('/api/files');
+                    const files = await response.json();
+
+                    this.updateFilesList(files);
+                    this.updateDownloadSelect(files);
+                } catch (error) {
+                    console.error('Failed to load files:', error);
+                }
+            }
+
+            updateFilesList(files) {
+                if (files.length === 0) {
+                    this.filesList.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                                <polyline points="13,2 13,9 20,9"/>
+                            </svg>
+                            <p>No files uploaded yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.filesList.innerHTML = files.map(file => `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <div class="file-name">${file.filename}</div>
+                            <div class="file-meta">
+                                ${this.formatFileSize(file.size)} • ${file.chunks} chunks • 
+                                ${new Date(file.uploadTime).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-secondary btn-small" onclick="app.downloadFileByName('${file.filename}')">
+                                Download
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateDownloadSelect(files) {
+                this.downloadSelect.innerHTML = files.length > 0 
+                    ? `<option value="">Select a file...</option>` + 
+                      files.map(file => `<option value="${file.filename}">${file.filename}</option>`).join('')
+                    : `<option value="">No files available</option>`;
+            }
+
+            async downloadFileByName(filename) {
+                this.downloadSelect.value = filename;
+                this.handleDownloadSelect();
+                await this.downloadFile();
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            setLoading(type, loading) {
+                const btn = type === 'upload' ? this.uploadBtn : this.downloadBtn;
+                const text = type === 'upload' ? this.uploadBtnText : this.downloadBtnText;
+                const loader = type === 'upload' ? this.uploadLoading : this.downloadLoading;
+
+                btn.disabled = loading;
+                loader.style.display = loading ? 'inline-block' : 'none';
+                text.style.display = loading ? 'none' : 'inline';
+            }
+
+            showStatus(type, status, message) {
+                const statusEl = type === 'upload' ? this.uploadStatus : this.downloadStatus;
+                statusEl.className = `status ${status}`;
+                statusEl.textContent = message;
+                statusEl.style.display = 'block';
+            }
+
+            hideStatus(type) {
+                const statusEl = type === 'upload' ? this.uploadStatus : this.downloadStatus;
+                statusEl.style.display = 'none';
+            }
+
+            showProgress() {
+                this.progressBar.style.display = 'block';
+                this.progressFill.style.width = '100%';
+            }
+
+            hideProgress() {
+                setTimeout(() => {
+                    this.progressBar.style.display = 'none';
+                    this.progressFill.style.width = '0%';
+                }, 1000);
+            }
+
+            resetUpload() {
+                this.selectedFile = null;
+                this.fileInput.value = '';
+                this.uploadBtnText.textContent = 'Select a file first';
+                this.uploadBtn.disabled = true;
+            }
+        }
+
+        // Initialize the app
+        const app = new FileStorageApp();
+    </script>
+</body>
+</html>
