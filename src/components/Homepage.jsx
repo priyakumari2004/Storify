@@ -34,8 +34,8 @@ const Homepage = ({ onNavigate }) => {
     },
     {
       icon: Shield,
-      title: 'Data Redundancy',
-      description: 'Multiple replicas ensure your data remains accessible even if nodes fail'
+      title: 'Seamless Retrieval',
+      description: 'When a file is requested, all its chunks are fetched, reconstructed in order, and served as a complete file—quickly and reliably'
     },
     {
       icon: Zap,
@@ -62,7 +62,7 @@ const Homepage = ({ onNavigate }) => {
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto">
-              Distributed File Storage System with intelligent chunking, redundancy, and high availability
+A Distributed File Storage System with smart chunking, intelligent redundancy, and seamless file retrieval across multiple storage nodes
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -99,6 +99,29 @@ const Homepage = ({ onNavigate }) => {
             </div>
           ))}
         </div>
+        
+        {/* System Features */}
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Storify System Highlights</h2>
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+            Built for reliability, performance, and scalability with enterprise-grade features
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+          {systemFeatures.map((feature, index) => (
+            <div key={index} className="text-center">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 hover:bg-slate-800/70 transition-all duration-300">
+                <div className="bg-gradient-to-br from-blue-500 to-purple-500 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-6">
+                  <feature.icon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
+                <p className="text-slate-300 leading-relaxed">{feature.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
 
         
 
